@@ -254,7 +254,10 @@ stC:[['Опубликован','Исполнитель выбран','В раб�
 nx_s:[['Демо: клиент выбрал вас','Начать работу','Сдать работу куратору','Ждём проверку куратора',''],['Demo: mijoz sizni tanladi','Ishni boshlash','Ishni kuratorga topshirish','Kurator tekshiruvini kutamiz',''],['Demo: client picks you','Start work','Submit to curator','Waiting for the curator','']],
 nx_c:[['Смотреть отклики','Демо: студент сдал работу','Демо: студент сдал работу','Ждём проверку куратора','Принять и оценить'],['Javoblarni koʻrish','Demo: talaba ishni topshirdi','Demo: talaba ishni topshirdi','Kurator tekshiruvini kutamiz','Qabul qilish va baholash'],['See applicants','Demo: student delivered','Demo: student delivered','Waiting for the curator','Accept and rate']],
 as_cu:['Открыть как куратор','Kurator sifatida ochish','Open as curator'],
-paid:['Оплата получена','Toʻlov olindi','Payment received'],wdT:['Вывод','Yechish','Withdrawal'],
+paid:['Оплата получена','Toʻlov olindi','Payment received'],pend:['Заявка на вывод · в обработке','Yechish soʻrovi · koʻrib chiqilmoqda','Withdrawal · processing'],
+lost:['Клиент выбрал другого исполнителя','Mijoz boshqa ijrochini tanladi','The client picked someone else'],wait_pick:['Ждём, когда клиент выберет исполнителя','Mijoz ijrochini tanlashini kutamiz','Waiting for the client to pick'],
+working:['Студент выполняет работу','Talaba ishni bajarmoqda','The student is working'],noapps:['Откликов пока нет. Студенты получат уведомление.','Hozircha javob yoʻq. Talabalarga xabar boradi.','No applicants yet. Students will be notified.'],
+loading:['Загрузка…','Yuklanmoqda…','Loading…'],live:['Данные с сервера KFU Work','KFU Work serveridagi maʼlumotlar','Live data from the KFU Work server'],wd_live:['Заявка уйдёт администратору, выплата вручную на карту в течение 1–3 дней.','Soʻrov administratorga ketadi, toʻlov 1–3 kunda kartaga qoʻlda.','The request goes to an admin; payout to your card within 1–3 days.'],wdT:['Вывод','Yechish','Withdrawal'],
 new_t:['Новый заказ','Yangi buyurtma','New order'],svc:['Услуга','Xizmat','Service'],vol:['Объём','Hajm','Size'],vols:[['Малый','Средний','Большой'],['Kichik','Oʻrta','Katta'],['Small','Medium','Large']],
 urg:['Срочно (до 3 дней), +30%','Shoshilinch (3 kungacha), +30%','Urgent (up to 3 days), +30%'],o_title:['Что нужно сделать','Nima qilish kerak','What needs doing'],o_desc:['Подробности','Tafsilotlar','Details'],
 o_title_ph:['Например: логотип для кофейни','Masalan: qahvaxona uchun logotip','E.g. a logo for a coffee shop'],o_desc_ph:['Сроки, языки, пожелания, ссылки на примеры','Muddat, tillar, istaklar, namunalar','Deadline, languages, wishes, examples'],
@@ -304,15 +307,38 @@ var KW={translate:['перев','язык','субтит','англ','tarjim','t
 function fresh(){return {role:'student',bal:1240000,goal:2000000,hist:[{k:'in',a:332500,s:0,ts:Date.now()-864e5*3},{k:'in',a:427500,s:1,ts:Date.now()-864e5*9},{k:'out',a:500000,m:'Click',ts:Date.now()-864e5*12}],ap:{},fav:{},sk:{design:true,translate:true},my:[],name:'Мадина А.',rec:[{s:0,r:5},{s:1,r:4.8}],bdg:['design','translate','data'],jobs:12,cu:0,fund:0,notif:true,theme:'auto',lang:null,tip:0,nid:100};}
 var S=fresh();
 try{var sv=JSON.parse(localStorage.getItem('kw-v2')||'null');if(sv)for(var k in sv)S[k]=sv[k];}catch(e){}
-function save(){try{localStorage.setItem('kw-v2',JSON.stringify(S))}catch(e){}}
+// online: server is the source of truth, keep only UI prefs locally
+function save(){try{if(typeof ONLINE!=='undefined'&&ONLINE)localStorage.setItem('kw-pref',JSON.stringify({lang:S.lang,theme:S.theme,notif:S.notif}));else localStorage.setItem('kw-v2',JSON.stringify(S))}catch(e){}}
 var cat='all',q='',sortBy='new',view='home';
 function loc(){return lang==='en'?'en-US':'ru-RU'}
 function num(n){return Math.round(n).toLocaleString(loc())}
 function fmt(n){return n>=1000000?(n/1000000).toLocaleString(loc(),{maximumFractionDigits:1})+t('mln'):num(n)}
 function rate(p){return p>=1e6?.1:p>=5e5?.075:.05}
 function cname(c){return t('cats')[c]}
-function title(o){return o.mine?o.title:T.O[o.id][LI[lang]][0]}
-function desc(o){return o.mine?o.desc:T.O[o.id][LI[lang]][1]}
+function title(o){return o.title||T.O[o.id][LI[lang]][0]}
+function desc(o){return o.title?(o.desc||''):T.O[o.id][LI[lang]][1]}
+/* ---------- SERVER (online mode inside Telegram) ---------- */
+var API='https://kfu-work-api.kfu-work-api.workers.dev';
+var ONLINE=!!(tg&&tg.initData&&API),ME=null,AP_ORD={},QUEUE=[],LOADING=ONLINE;
+var ERR={ru:{min:'Минимум 10 000 сум',balance:'Недостаточно средств',title:'Опишите задачу хотя бы в 5 символах',msg:'Напишите сообщение',closed:'Заказ уже закрыт',too_many:'Не больше 10 активных заказов',not_curator:'Вы не куратор',unauthorized:'Откройте приложение из бота',net:'Нет связи с сервером'},
+ uz:{min:'Kamida 10 000 soʻm',balance:'Mablagʻ yetarli emas',title:'Vazifani kamida 5 belgida yozing',msg:'Xabar yozing',closed:'Buyurtma yopilgan',too_many:'10 tadan ortiq faol buyurtma boʻlmaydi',not_curator:'Siz kurator emassiz',unauthorized:'Ilovani botdan oching',net:'Server bilan aloqa yoʻq'},
+ en:{min:'Minimum 10,000 UZS',balance:'Not enough balance',title:'Describe the task in at least 5 characters',msg:'Write a message',closed:'The order is closed',too_many:'Max 10 active orders',not_curator:'You are not a curator',unauthorized:'Open the app from the bot',net:'No connection to the server'}};
+function api(action,body){return fetch(API+'/api/'+action,{method:'POST',headers:{'content-type':'application/json','x-init-data':tg.initData},body:JSON.stringify(body||{})})
+  .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'server');return j})})
+  .then(function(s){fromServer(s);return s},function(e){var m=ERR[lang][e.message]||ERR[lang].net;toast(m);haptic('error');throw e})}
+// run an action on the server when online, locally otherwise; then call after()
+function act(action,body,local,after){if(ONLINE){api(action,body).then(function(){after&&after()},function(){});return}local();save();render();after&&after()}
+function fromServer(s){var me=s.me;ME=me;LOADING=false;S.name=me.name;S.role=me.role;S.bal=me.bal;S.sk={};me.skills.forEach(function(c){S.sk[c]=true});
+  var age=function(ts){return Math.floor((Date.now()-ts)/864e5)};
+  ORDERS=s.open.map(function(o){return {id:o.id,cat:o.cat,p:o.price,days:o.days,r:o.r,age:age(o.created),title:o.title,desc:o.descr}});
+  S.ap={};AP_ORD={};s.myApps.forEach(function(o){AP_ORD[o.id]={id:o.id,cat:o.cat,p:o.price,days:o.days,r:0,age:age(o.created),title:o.title,desc:o.descr};
+    S.ap[o.id]={stage:o.worker_id===me.id?Math.min(o.stage,4):o.stage===0?0:-1,msg:o.msg}});
+  S.my=s.myOrders.map(function(o){return {id:o.id,mine:true,cat:o.cat,p:o.price,days:o.days,r:0,age:age(o.created),title:o.title,desc:o.descr,stage:o.stage,who:o.worker_name,redo:!!o.redo,rating:o.rating,
+    apps:s.applicants.filter(function(a){return a.order_id===o.id})}});
+  S.hist=s.hist.map(function(h){return {k:h.kind,a:h.amount,o:h.order_id,t:h.title,m:h.method,pend:h.status==='pending',ts:h.ts}});
+  S.rec=s.records.map(function(r){return {t:r.title,r:r.rating||'—'}});S.bdg=s.badges;S.jobs=s.records.length;S.cu=s.cu;S.fund=s.fund;
+  QUEUE=s.queue.map(function(o){return {k:'srv',id:o.id,o:{id:o.id,cat:o.cat,p:o.price,days:o.days,title:o.title,desc:o.descr},who:o.worker_name||'—'}});
+  render();}
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
 function haptic(kind){try{if(!tg||!tg.HapticFeedback)return;kind?tg.HapticFeedback.notificationOccurred(kind):tg.HapticFeedback.selectionChanged()}catch(e){}}
 var tt;function toast(s){var x=$('toast');x.textContent=s;x.hidden=false;clearTimeout(tt);tt=setTimeout(function(){x.hidden=true},2600)}
@@ -343,8 +369,8 @@ function homeStudent(h){
   h.appendChild(list(mine.map(function(o){return orderRow(o,cname(o.cat)+' · '+t('dl')(o.days))}),t('noskill')));
   h.appendChild(gh(t('hist')));
   var hs=S.hist.slice().sort(function(x,y){return y.ts-x.ts}).slice(0,6);
-  h.appendChild(list(hs.map(function(x){var inn=x.k==='in',nm=inn?(x.o!=null?title(findOrder(x.o)):t('seed')[x.s]):t('wdT')+' · '+x.m;
-    return row({icon:icon(null,true,inn?'↓':'↑'),t:nm,s:new Date(x.ts).toLocaleDateString(loc(),{day:'numeric',month:'short'})+' · '+(inn?t('paid'):t('wdT')),r:(inn?'+':'−')+num(x.a),rs:t('sum'),plus:inn})}),t('nohist')));
+  h.appendChild(list(hs.map(function(x){var inn=x.k==='in',nm=inn?(x.t||(x.o!=null?title(findOrder(x.o)):t('seed')[x.s])):t('wdT')+' · '+x.m;
+    return row({icon:icon(null,true,inn?'↓':'↑'),t:nm,s:new Date(x.ts).toLocaleDateString(loc(),{day:'numeric',month:'short'})+' · '+(inn?t('paid'):x.pend?t('pend'):t('wdT')),r:(inn?'+':'−')+num(x.a),rs:t('sum'),plus:inn})}),t('nohist')));
   h.querySelectorAll('.ri.round').forEach(function(i){i.style.background=i.textContent==='↓'?'#34c759':'#8a8a8e'});
 }
 function homeClient(h){
@@ -366,10 +392,10 @@ function homeCurator(h){
 function aiCard(){var c=el('button','card ai');c.type='button';c.appendChild(el('span','e','✦'));var d=el('div');d.appendChild(el('b',null,t('ai_t')));d.appendChild(el('span',null,t('ai_s')));c.appendChild(d);c.addEventListener('click',openAI);return c}
 
 /* ---------- MINE ---------- */
-function findOrder(id){for(var i=0;i<ORDERS.length;i++)if(ORDERS[i].id===id)return ORDERS[i];for(i=0;i<S.my.length;i++)if(S.my[i].id===id)return S.my[i];return ORDERS[0]}
+function findOrder(id){if(AP_ORD[id])return AP_ORD[id];for(var i=0;i<ORDERS.length;i++)if(ORDERS[i].id===id)return ORDERS[i];for(i=0;i<S.my.length;i++)if(S.my[i].id===id)return S.my[i];return ORDERS[0]}
 function myRow(o){var st=Math.min(o.stage,4),fin=o.stage>=5;var r=row({icon:icon(o.cat),t:o.title,s:t('stC')[st]+(fin&&o.rating?' · ★ '+o.rating:''),badge:o.stage===4?['!','wb']:null,r:fmt(o.p),rs:t('sum'),click:function(){openMy(o)}});r.querySelector('.rt').appendChild(tl(st,fin));return r}
-function apRow(id){var o=findOrder(id),st=S.ap[id].stage,r=row({icon:icon(o.cat),t:title(o),s:t('stS')[st],badge:st===4?['✓','okb']:st===3?['…','wb']:null,r:fmt(o.p),rs:t('sum'),click:function(){openTrack(o)}});r.querySelector('.rt').appendChild(tl(st,st===4));return r}
-function queue(){var q=[];Object.keys(S.ap).forEach(function(id){if(S.ap[id].stage===3)q.push({k:'s',id:+id,o:findOrder(+id),who:S.name})});S.my.forEach(function(o){if(o.stage===3)q.push({k:'c',id:o.id,o:o,who:o.who})});return q}
+function apRow(id){var o=findOrder(id),st=S.ap[id].stage,r=row({icon:icon(o.cat),t:title(o),s:st<0?t('lost'):t('stS')[st],badge:st===4?['✓','okb']:st===3?['…','wb']:null,r:fmt(o.p),rs:t('sum'),click:function(){openTrack(o)}});r.querySelector('.rt').appendChild(tl(st,st===4));return r}
+function queue(){if(ONLINE)return QUEUE;var q=[];Object.keys(S.ap).forEach(function(id){if(S.ap[id].stage===3)q.push({k:'s',id:+id,o:findOrder(+id),who:S.name})});S.my.forEach(function(o){if(o.stage===3)q.push({k:'c',id:o.id,o:o,who:o.who})});return q}
 function queueList(){return list(queue().map(function(x){return row({icon:icon(x.o.cat),t:title(x.o),s:x.who+' · '+cname(x.o.cat),badge:['…','wb'],r:fmt(x.o.p),rs:t('sum'),click:function(){openReview(x)}})}),t('noq'))}
 function renderMine(){var b=$('mineBody');b.textContent='';
   if(S.role==='student'){var ids=Object.keys(S.ap).filter(function(k){return S.ap[k]}).map(Number).reverse();b.appendChild(list(ids.map(apRow),t('nomine')));
@@ -387,21 +413,22 @@ function renderOrders(){var l=allOrders().filter(function(o){return (cat==='all'
 
 /* ---------- PROFILE / PASSPORT ---------- */
 function renderProfile(){var b=$('profBody');b.textContent='';
-  var avg=S.rec.length?(S.rec.reduce(function(s,r){return s+r.r},0)/S.rec.length):0,p=el('div','pass'),h=el('div','ph');h.appendChild(el('span',null,'KFU WORK · '+t('pass_no')));h.appendChild(el('span',null,'№ KP-0001'));p.appendChild(h);
+  var rated=S.rec.filter(function(r){return typeof r.r==='number'}),avg=rated.length?(rated.reduce(function(s,r){return s+r.r},0)/rated.length):0,p=el('div','pass'),h=el('div','ph');h.appendChild(el('span',null,'KFU WORK · '+t('pass_no')));h.appendChild(el('span',null,'№ KP-0001'));p.appendChild(h);
   var m=el('div','pm'),av=el('div','av',(S.name||'?').split(/\s+/).map(function(w){return w[0]||''}).join('').slice(0,2).toUpperCase());m.appendChild(av);var mt=el('div');mt.appendChild(el('h2',null,S.name||'—'));mt.appendChild(el('p',null,['Экономика · 3 курс · КФУ Джизак','Iqtisodiyot · 3-kurs · QFU Jizzax','Economics · Year 3 · KFU Jizzakh'][LI[lang]]));m.appendChild(mt);p.appendChild(m);
   var ps=el('div','ps');[[S.jobs,t('st1')],[avg.toLocaleString(loc(),{minimumFractionDigits:1,maximumFractionDigits:1}),t('st2')],[S.bdg.length,t('st3')]].forEach(function(x){var d=el('div');d.appendChild(el('b',null,String(x[0])));d.appendChild(el('span',null,x[1]));ps.appendChild(d)});p.appendChild(ps);
   p.appendChild(el('div','mrz','KFU<WORK<<CAREER<PASSPORT<<KP0001<<'+(S.name||'').toUpperCase().replace(/[^A-ZА-ЯЁ]/g,'<')+'<<<<<<<<<<<<'));b.appendChild(p);
   var left=Math.max(0,15-S.jobs);if(left){var pr=el('div','card prog'),pp=el('p');pp.appendChild(el('b',null,t('more')+' '+left+' '+t('ord_w')));pp.appendChild(document.createTextNode(' '+t('to_badge')));pr.appendChild(pp);var br=el('div','bar'),bi=el('i');bi.style.width=Math.round(S.jobs/15*100)+'%';br.appendChild(bi);pr.appendChild(br);b.appendChild(pr)}
   b.appendChild(gh(t('badges')));var bg=el('div','badges');S.bdg.forEach(function(c){bg.appendChild(el('span','bdg','✓ '+cname(c)))});b.appendChild(bg);
-  b.appendChild(gh(t('my_sk')));var sk=el('div','chips wrap');Object.keys(BASE).forEach(function(c){var x=el('button','chip',cname(c));x.type='button';x.setAttribute('aria-pressed',String(!!S.sk[c]));x.addEventListener('click',function(){S.sk[c]=!S.sk[c];save();render();haptic()});sk.appendChild(x)});b.appendChild(sk);
-  b.appendChild(gh(t('records')));b.appendChild(list(S.rec.slice().reverse().map(function(r){var nm=r.o!=null?title(findOrder(r.o)):t('seed')[r.s],ic=icon(null,false,'✓');ic.style.background='#34c759';return row({icon:ic,t:nm,s:t('chk'),r:'★ '+String(r.r).replace('.',',')})}),''));
+  b.appendChild(gh(t('my_sk')));var sk=el('div','chips wrap');Object.keys(BASE).forEach(function(c){var x=el('button','chip',cname(c));x.type='button';x.setAttribute('aria-pressed',String(!!S.sk[c]));x.addEventListener('click',function(){var n={};for(var k in S.sk)n[k]=S.sk[k];n[c]=!n[c];act('profile',{skills:Object.keys(n).filter(function(k){return n[k]})},function(){S.sk=n},function(){haptic()})});sk.appendChild(x)});b.appendChild(sk);
+  b.appendChild(gh(t('records')));b.appendChild(list(S.rec.slice().reverse().map(function(r){var nm=r.t||(r.o!=null?title(findOrder(r.o)):t('seed')[r.s]),ic=icon(null,false,'✓');ic.style.background='#34c759';return row({icon:ic,t:nm,s:t('chk'),r:'★ '+String(r.r).replace('.',',')})}),''));
   var sh=el('button','ghost',t('share'));sh.type='button';sh.style.background='var(--card)';sh.style.marginBottom='16px';sh.addEventListener('click',function(){var u='https://t.me/KFUhire_bot?start=passport';try{navigator.clipboard.writeText(u).then(function(){toast(t('shared'))},function(){toast(u)})}catch(e){toast(u)}});b.appendChild(sh);
   b.appendChild(gh(t('settings')));var g=el('div','grp');
-  var s1=el('label','set');s1.appendChild(el('span',null,t('s_name')));var ni=el('input');ni.type='text';ni.maxLength=24;ni.value=S.name;ni.addEventListener('change',function(){S.name=ni.value.trim().slice(0,24)||'—';save();render()});s1.appendChild(ni);g.appendChild(s1);
+  var s1=el('label','set');s1.appendChild(el('span',null,t('s_name')));var ni=el('input');ni.type='text';ni.maxLength=24;ni.value=S.name;ni.addEventListener('change',function(){var v=ni.value.trim().slice(0,24)||'—';act('profile',{name:v},function(){S.name=v})});s1.appendChild(ni);g.appendChild(s1);
   var s2=el('label','set');s2.appendChild(el('span',null,t('s_lang')));var ls=el('select');[['ru','Русский'],['uz','Oʻzbekcha'],['en','English']].forEach(function(o){var op=el('option',null,o[1]);op.value=o[0];ls.appendChild(op)});ls.value=lang;ls.addEventListener('change',function(){setLang(ls.value)});s2.appendChild(ls);g.appendChild(s2);
   var s3=el('label','set');s3.appendChild(el('span',null,t('s_theme')));var ts=el('select');[['auto','th_a'],['light','th_l'],['dark','th_d']].forEach(function(o){var op=el('option',null,t(o[1]));op.value=o[0];ts.appendChild(op)});ts.value=S.theme;ts.addEventListener('change',function(){S.theme=ts.value;save();theme()});s3.appendChild(ts);g.appendChild(s3);
   var s4=el('label','set');s4.appendChild(el('span',null,t('s_notif')));var sw=el('input','sw');sw.type='checkbox';sw.checked=S.notif;sw.addEventListener('change',function(){S.notif=sw.checked;save();haptic()});s4.appendChild(sw);g.appendChild(s4);
   [['s_bot','https://t.me/KFUhire_bot'],['s_site','https://mahmud0remo3272-oss.github.io/kfu-work/']].forEach(function(x){var s=el('div','set'),l=el('button','lnk',t(x[0]));l.type='button';l.addEventListener('click',function(){openLink(x[1])});s.appendChild(l);g.appendChild(s)});
+  if(ONLINE){b.appendChild(g);return}
   var s5=el('div','set'),rb=el('button','lnk red',t('s_reset'));rb.type='button';var armed=false;rb.addEventListener('click',function(){if(!armed){armed=true;rb.textContent=t('reset_q');return}var l=lang;S=fresh();S.lang=l;save();theme();render();toast(t('reset_ok'))});s5.appendChild(rb);g.appendChild(s5);
   b.appendChild(g);
 }
@@ -429,15 +456,19 @@ function openOrder(o){
     if(S.role!=='student'){s.appendChild(el('p','small',t('r_st')+' → '+t('apply')));return}
     s.appendChild(el('span','lbl',t('tpl_l')));var tp=el('div','chips'),ta=el('textarea','msg');ta.maxLength=400;ta.placeholder=t('empty_msg');ta.setAttribute('aria-label',t('tpl_l'));
     t('tpls').forEach(function(x){var b=el('button','chip',x[0]);b.type='button';b.addEventListener('click',function(){ta.value=x[1];haptic()});tp.appendChild(b)});s.appendChild(tp);s.appendChild(ta);
-    s.appendChild(mainBtn(t('apply'),function(){if(!ta.value.trim()){ta.focus();toast(t('empty_msg'));return}S.ap[o.id]={stage:0,msg:ta.value.trim()};save();render();haptic('success');toast(t('ok_ap'));openTrack(o)}));});
+    s.appendChild(mainBtn(t('apply'),function(){if(!ta.value.trim()){ta.focus();toast(t('empty_msg'));return}var m=ta.value.trim();act('apply',{order_id:o.id,msg:m},function(){S.ap[o.id]={stage:0,msg:m}},function(){haptic('success');toast(t('ok_ap'));openTrack(findOrder(o.id))})}));});
 }
-function openTrack(o){var a=S.ap[o.id];open(function(s){head(s,o.p,title(o),[cname(o.cat),t('dl')(o.days)]);s.appendChild(stepsList(t('stS'),a.stage));
+function waitBtn(s,txt){var b=mainBtn(txt,function(){});b.disabled=true;s.appendChild(b)}
+function openTrack(o){var a=S.ap[o.id];if(!a){close();return}open(function(s){head(s,o.p,title(o),[cname(o.cat),t('dl')(o.days)]);
+  if(a.stage<0){s.appendChild(el('p',null,t('lost')));return}
+  s.appendChild(stepsList(t('stS'),a.stage));
   if(a.ret)s.appendChild(el('p',null,'↺ '+t('ret_ok')));
-  var nx=t('nx_s')[a.stage];
-  if(a.stage<3)s.appendChild(mainBtn(nx,function(){a.stage++;a.ret=false;save();render();haptic('success');openTrack(o)}));
-  else if(a.stage===3){var b=mainBtn(nx,function(){});b.disabled=true;s.appendChild(b);s.appendChild(ghostBtn(t('as_cu'),function(){setRole('curator');close();go('mine')}))}
+  var nx=t('nx_s')[a.stage],again=function(){haptic('success');openTrack(findOrder(o.id))};
+  if(a.stage===0&&ONLINE)waitBtn(s,t('wait_pick'));
+  else if(a.stage<3)s.appendChild(mainBtn(nx,function(){act(['','start','submit'][a.stage],{order_id:o.id},function(){a.stage++;a.ret=false},again)}));
+  else if(a.stage===3){waitBtn(s,nx);if(!ONLINE||(ME&&ME.curator))s.appendChild(ghostBtn(t('as_cu'),function(){setRole('curator');close();go('mine')}))}
   else s.appendChild(el('p',null,'+'+num(o.p*(1-rate(o.p)))+' '+t('sum')+' · '+t('chk')));
-  if(a.stage===0)s.appendChild(ghostBtn(t('undo'),function(){delete S.ap[o.id];save();render();toast(t('undone'));close()}));});}
+  if(a.stage===0)s.appendChild(ghostBtn(t('undo'),function(){act('unapply',{order_id:o.id},function(){delete S.ap[o.id]},function(){toast(t('undone'));close()})}));});}
 
 function openNew(pre){pre=pre||{};var st={cat:pre.cat||'design',vol:1,urg:false};
   open(function(s){s.appendChild(el('h3',null,t('new_t')));
@@ -454,32 +485,37 @@ function openNew(pre){pre=pre||{};var st={cat:pre.cat||'design',vol:1,urg:false}
       [[t('to_st'),num(p-cm)],[t('comm')+' '+(r*100).toLocaleString(loc())+'%',num(cm)]].forEach(function(x){var l=el('div','l');l.appendChild(el('span',null,x[0]));l.appendChild(el('span',null,x[1]));c.appendChild(l)})}
     upd();
     s.appendChild(mainBtn(t('publish'),function(){var tx=ti.value.trim();if(tx.length<5){ti.focus();toast(t('need_t'));return}
-      var o={id:++S.nid,mine:true,cat:st.cat,p:price(),days:st.urg?3:7,r:0,age:0,title:tx,desc:de.value.trim(),stage:0,redo:false};S.my.push(o);if(S.role!=='client')setRole('client');save();render();
-      sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('posted'),fmt(o.p)+' '+t('sum')+' · '+cname(o.cat))}));});
+      var p=price(),c=st.cat,done=function(){if(S.role!=='client')setRole('client');sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('posted'),fmt(p)+' '+t('sum')+' · '+cname(c))};
+      act('post',{cat:c,vol:st.vol,urg:st.urg,title:tx,desc:de.value.trim()},function(){S.my.push({id:++S.nid,mine:true,cat:c,p:p,days:st.urg?3:7,r:0,age:0,title:tx,desc:de.value.trim(),stage:0,redo:false})},done)}));});
 }
 function pickers(o){return STU.filter(function(x){return x.c===o.cat}).concat(STU.filter(function(x){return x.c!==o.cat})).slice(0,3)}
 function stuRow(x,btn){var ic=icon(x.c,true,x.n[0]);var r=row({icon:ic,t:x.n,s:'★ '+x.r.toLocaleString(loc())+' · '+x.j+' '+t('st1')+' · ✓ '+cname(x.c)});if(btn){r.appendChild(btn)}return r}
 function openMy(o){open(function(s){head(s,o.p,o.title,[cname(o.cat),t('dl')(o.days)],o.desc);var st=Math.min(o.stage,4);s.appendChild(stepsList(t('stC'),o.stage>=5?4:st));
   if(o.who)s.appendChild(el('p',null,'👤 '+o.who));
-  if(o.stage===0){s.appendChild(el('span','lbl',t('pick_t')));var g=el('div','grp');g.style.background='var(--bg)';pickers(o).forEach(function(x){var b=el('button','chip',t('pick'));b.type='button';b.style.marginRight='10px';b.style.background='var(--accent)';b.style.color='var(--accent-ink)';b.addEventListener('click',function(){o.who=x.n;o.stage=1;save();render();haptic('success');toast(t('picked'));openMy(o)});g.appendChild(stuRow(x,b))});s.appendChild(g);
-    s.appendChild(ghostBtn(t('team'),function(){o.who=pickers(o).map(function(x){return x.n}).join(', ');o.stage=1;save();render();toast(t('picked'));openMy(o)}))}
-  else if(o.stage===1||o.stage===2)s.appendChild(mainBtn(t('nx_c')[o.stage],function(){o.stage=3;save();render();haptic();openMy(o)}));
-  else if(o.stage===3){var b=mainBtn(t('nx_c')[3],function(){});b.disabled=true;s.appendChild(b);s.appendChild(ghostBtn(t('as_cu'),function(){setRole('curator');close();go('mine')}))}
+  var again=function(){var n=S.my.filter(function(x){return x.id===o.id})[0];if(n)openMy(n);else close()};
+  if(o.stage===0){s.appendChild(el('span','lbl',t('pick_t')));var g=el('div','grp');g.style.background='var(--bg)';
+    var cands=ONLINE?(o.apps||[]).map(function(a){return {n:a.name,c:o.cat,r:a.avg?Math.round(a.avg*10)/10:0,j:a.jobs,id:a.id,msg:a.msg}}):pickers(o);
+    if(!cands.length)g.appendChild(el('div','empty',t('noapps')));
+    cands.forEach(function(x){var b=el('button','chip',t('pick'));b.type='button';b.style.marginRight='10px';b.style.background='var(--accent)';b.style.color='var(--accent-ink)';
+      b.addEventListener('click',function(){act('pick',{order_id:o.id,student_id:x.id},function(){o.who=x.n;o.stage=1},function(){haptic('success');toast(t('picked'));again()})});var r=stuRow(x,b);if(x.msg){r.querySelector('.rt span').textContent='«'+x.msg+'»';r.querySelector('.rt span').style.whiteSpace='normal'}g.appendChild(r)});s.appendChild(g);
+    if(!ONLINE)s.appendChild(ghostBtn(t('team'),function(){o.who=pickers(o).map(function(x){return x.n}).join(', ');o.stage=1;save();render();toast(t('picked'));openMy(o)}))}
+  else if(o.stage===1||o.stage===2){if(ONLINE)waitBtn(s,t('working'));else s.appendChild(mainBtn(t('nx_c')[o.stage],function(){o.stage=3;save();render();haptic();openMy(o)}))}
+  else if(o.stage===3){waitBtn(s,t('nx_c')[3]);if(!ONLINE||(ME&&ME.curator))s.appendChild(ghostBtn(t('as_cu'),function(){setRole('curator');close();go('mine')}))}
   else if(o.stage===4){s.appendChild(el('span','lbl',t('rate_t')));var sr=el('div','stars'),val=5;for(var i=1;i<=5;i++)(function(i){var x=el('button','on','★');x.type='button';x.setAttribute('aria-label',i+'/5');x.addEventListener('click',function(){val=i;sr.querySelectorAll('button').forEach(function(y,j){y.className=j<i?'on':''});haptic()});sr.appendChild(x)})(i);s.appendChild(sr);
-    s.appendChild(mainBtn(t('nx_c')[4],function(){o.stage=5;o.rating=val;save();render();sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('rate_ok'),'★ '+val+' · '+o.title)}));
-    s.appendChild(ghostBtn(o.redo?t('redo_used'):t('redo'),function(){if(o.redo){toast(t('redo_used'));return}o.redo=true;o.stage=2;save();render();toast(t('redo_ok'));openMy(o)}))}
+    s.appendChild(mainBtn(t('nx_c')[4],function(){act('accept',{order_id:o.id,rating:val},function(){o.stage=5;o.rating=val},function(){sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('rate_ok'),'★ '+val+' · '+o.title)})}));
+    s.appendChild(ghostBtn(o.redo?t('redo_used'):t('redo'),function(){if(o.redo){toast(t('redo_used'));return}act('redo',{order_id:o.id},function(){o.redo=true;o.stage=2},function(){toast(t('redo_ok'));again()})}))}
   else s.appendChild(el('p',null,'★ '+o.rating+' · '+t('chk')));});}
 function openReview(x){var o=x.o;open(function(s){head(s,o.p,title(o),[x.who,cname(o.cat),t('dl')(o.days)],desc(o));
   var c=el('div','calc');[[t('to_st'),num(o.p*(1-rate(o.p)))],[t('cu_earn'),num(o.p*rate(o.p)*.3)],[t('cu_fund'),num(o.p*rate(o.p)*.7)]].forEach(function(r){var l=el('div','l');l.appendChild(el('span',null,r[0]));l.appendChild(el('b',null,r[1]+' '+t('sum')));c.appendChild(l)});s.appendChild(c);
-  s.appendChild(mainBtn(t('approve'),function(){var cm=o.p*rate(o.p);S.cu+=Math.round(cm*.3);S.fund+=Math.round(cm*.7);
-    if(x.k==='s'){S.ap[x.id].stage=4;var net=Math.round(o.p-cm);S.bal+=net;S.jobs++;S.hist.push({k:'in',a:net,o:o.id,ts:Date.now()});S.rec.push({o:o.id,r:5});if(S.bdg.indexOf(o.cat)<0)S.bdg.push(o.cat)}else{o.stage=4}
-    save();render();sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('appr_ok'),title(o))}));
-  s.appendChild(ghostBtn(t('ret'),function(){if(x.k==='s'){S.ap[x.id].stage=2;S.ap[x.id].ret=true}else o.stage=2;save();render();toast(t('ret_ok'));close()}));});}
+  s.appendChild(mainBtn(t('approve'),function(){act('approve',{order_id:o.id},function(){var cm=o.p*rate(o.p);S.cu+=Math.round(cm*.3);S.fund+=Math.round(cm*.7);
+    if(x.k==='s'){S.ap[x.id].stage=4;var net=Math.round(o.p-cm);S.bal+=net;S.jobs++;S.hist.push({k:'in',a:net,o:o.id,ts:Date.now()});S.rec.push({o:o.id,r:5});if(S.bdg.indexOf(o.cat)<0)S.bdg.push(o.cat)}else{o.stage=4}},
+    function(){sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('appr_ok'),title(o))})}));
+  s.appendChild(ghostBtn(t('ret'),function(){act('return',{order_id:o.id},function(){if(x.k==='s'){S.ap[x.id].stage=2;S.ap[x.id].ret=true}else o.stage=2},function(){toast(t('ret_ok'));close()})}));});}
 
 function openWithdraw(){var v='';open(function(s){s.appendChild(el('h3',null,t('wd_t')));var a=el('div','amt'),av=el('div','avail');s.appendChild(a);s.appendChild(av);
   var mt='Click',ms=el('div','seg');ms.style.marginTop='12px';['Click','Payme','Uzcard •• 4417'].forEach(function(m){var b=el('button',null,m);b.type='button';b.addEventListener('click',function(){mt=m;draw();haptic()});ms.appendChild(b)});s.appendChild(ms);
   var kp=el('div','kp');['1','2','3','4','5','6','7','8','9','000','0','⌫'].forEach(function(k){var b=el('button',null,k);b.type='button';b.setAttribute('aria-label',k==='⌫'?'Backspace':k);b.addEventListener('click',function(){if(k==='⌫')v=v.slice(0,-1);else if(v.length+k.length<=9&&!(v===''&&k[0]==='0'))v+=k;draw();haptic()});kp.appendChild(b)});s.appendChild(kp);
-  var go2=mainBtn(t('wd_go'),function(){var n=+v||0;if(n<10000){toast(t('wd_min'));return}if(n>S.bal){toast(t('wd_over'));return}S.bal-=n;S.hist.push({k:'out',a:n,m:mt.split(' ')[0],ts:Date.now()});save();render();sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,t('wd_ok'),'−'+num(n)+' '+t('sum')+' · '+mt)});s.appendChild(go2);s.appendChild(el('p','small',t('wd_n')));
+  var go2=mainBtn(t('wd_go'),function(){var n=+v||0;if(n<10000){toast(t('wd_min'));return}if(n>S.bal){toast(t('wd_over'));return}var mm=mt.split(' ')[0];act('withdraw',{amount:n,method:mm},function(){S.bal-=n;S.hist.push({k:'out',a:n,m:mm,ts:Date.now()})},function(){sheet.textContent='';sheet.appendChild(el('div','grab'));success(sheet,ONLINE?t('pend'):t('wd_ok'),'−'+num(n)+' '+t('sum')+' · '+mt)})});s.appendChild(go2);s.appendChild(el('p','small',t(ONLINE?'wd_live':'wd_n')));
   function draw(){var n=+v||0;a.textContent=(n?num(n):'0')+' ';a.appendChild(el('span',null,t('sum')));a.className='amt'+(n>S.bal?' bad':'');av.textContent=t('avail')+': '+num(S.bal)+' '+t('sum')+' · ';var mx=el('button',null,t('max'));mx.type='button';mx.addEventListener('click',function(){v=String(S.bal);draw()});av.appendChild(mx);
     ms.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.textContent===mt))});go2.disabled=n<10000||n>S.bal}
   draw();});}
@@ -492,7 +528,7 @@ function openAI(){open(function(s){s.appendChild(el('h3',null,'✦ '+t('ai_t')))
     out.appendChild(mainBtn(t('ai_mk'),function(){openNew({cat:best,title:ta.value.trim().slice(0,60),desc:ta.value.trim()})}));haptic('success')}));s.appendChild(out);s.appendChild(el('p','small',t('ai_note')));});}
 
 /* ---------- NAV / ROLE / LANG ---------- */
-function setRole(r){S.role=r;save();render();haptic()}
+function setRole(r){if(ONLINE){if(r==='curator'&&!(ME&&ME.curator))return;S.role=r;render();api('profile',{role:r}).catch(function(){});haptic();return}S.role=r;save();render();haptic()}
 document.querySelectorAll('[data-role]').forEach(function(b){b.addEventListener('click',function(){setRole(b.getAttribute('data-role'))})});
 function go(v){view=v;['home','orders','mine','profile'].forEach(function(k){$('v-'+k).hidden=(k!==v)});document.querySelectorAll('.tab').forEach(function(x){if(x.getAttribute('data-tab')===v)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});scrollTo(0,0);haptic()}
 document.querySelectorAll('[data-tab]').forEach(function(x){x.addEventListener('click',function(){go(x.getAttribute('data-tab'))})});
@@ -505,13 +541,20 @@ function render(){
   document.querySelectorAll('[data-t]').forEach(function(e){e.textContent=t(e.getAttribute('data-t'))});document.querySelectorAll('[data-tp]').forEach(function(e){e.placeholder=t(e.getAttribute('data-tp'))});
   $('langBtn').textContent=lang.toUpperCase();
   document.querySelectorAll('[data-role]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-role')===S.role))});
+  var cuB=document.querySelector('[data-role=curator]');cuB.hidden=ONLINE&&!(ME&&ME.curator);$('roleSeg').style.gridTemplateColumns=cuB.hidden?'1fr 1fr':'';
+  document.querySelector('.demo-note').textContent=ONLINE?(LOADING?t('loading'):t('live')):t('demo');
   var mk={student:'m_st',client:'m_cl',curator:'m_cu'}[S.role];$('mineTab').textContent=t(mk);$('mineTitle').textContent=t(mk);
   var h=$('homeBody');h.textContent='';({student:homeStudent,client:homeClient,curator:homeCurator})[S.role](h);
   renderOrders();renderMine();renderProfile();
-  var n=S.role==='student'?Object.keys(S.ap).filter(function(k){return S.ap[k].stage<4}).length:S.role==='client'?S.my.filter(function(o){return o.stage===4}).length:queue().length,d=$('mineDot');d.hidden=!n;d.textContent=n;
+  var n=S.role==='student'?Object.keys(S.ap).filter(function(k){return S.ap[k].stage>=0&&S.ap[k].stage<4}).length:S.role==='client'?S.my.filter(function(o){return o.stage===4}).length:queue().length,d=$('mineDot');d.hidden=!n;d.textContent=n;
 }
 var st0=S.lang;if(!st0){st0='ru';try{var lc=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.language_code;if(lc)st0=lc==='uz'?'uz':lc==='ru'?'ru':'en'}catch(e){}}
+if(ONLINE){S=fresh();S.bal=0;S.hist=[];S.rec=[];S.bdg=[];S.jobs=0;S.sk={};S.name=(tg.initDataUnsafe.user||{}).first_name||'—';ORDERS=[];
+  try{var pf=JSON.parse(localStorage.getItem('kw-pref')||'{}');if(pf.theme)S.theme=pf.theme;if(pf.lang)st0=pf.lang;if(pf.notif!=null)S.notif=pf.notif}catch(e){}S.lang=st0}
 lang=st0;document.documentElement.setAttribute('lang',lang);theme();render();
+if(ONLINE){api('state').catch(function(){});
+  // refresh when the user comes back to the app (e.g. after a bot notification)
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&bg.hidden)api('state').catch(function(){})})}
 })();
 </script>
 </body></html>
