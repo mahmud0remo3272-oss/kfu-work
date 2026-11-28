@@ -187,6 +187,7 @@ body.no-tabs .tabs{display:none}
     <p class="small" data-t="lg_note"></p>
     <button class="main" type="button" id="installBtn" data-t="inst" hidden></button>
     <p class="small" id="iosHint" data-t="ios" hidden></p>
+    <a class="ghost" id="apkLink" href="kfu-work.apk" download hidden style="text-decoration:none;box-sizing:border-box"><span data-t="apk"></span></a>
     <button class="ghost" type="button" id="demoBtn" data-t="lg_demo"></button>
     <div class="lg-lang" id="lgLang"><button type="button" data-l="ru">RU</button><button type="button" data-l="uz">UZ</button><button type="button" data-l="en">EN</button></div>
   </section>
@@ -281,6 +282,7 @@ lg_p:['Биржа услуг студентов КФУ Джизак. Войди�
 lg_note:['Те же данные, что в боте @KFUhire_bot. Пароль не нужен.','@KFUhire_bot botidagi maʼlumotlar. Parol kerak emas.','Same data as in the @KFUhire_bot bot. No password needed.'],
 lg_demo:['Посмотреть демо без входа','Kirmasdan demoni koʻrish','Try the demo without logging in'],inst:['📲 Установить приложение','📲 Ilovani oʻrnatish','📲 Install the app'],
 ios:['На iPhone: нажмите «Поделиться» внизу Safari, затем «На экран Домой».','iPhone’da: Safari pastidagi «Ulashish» → «Bosh ekranga».','On iPhone: tap Share in Safari, then “Add to Home Screen”.'],
+apk:['🤖 Скачать APK для Android','🤖 Android uchun APK yuklab olish','🤖 Download APK for Android'],
 logout:['Выйти из аккаунта','Akkauntdan chiqish','Log out'],login_s:['Войти через Telegram','Telegram orqali kirish','Log in with Telegram'],
 paid:['Оплата получена','Toʻlov olindi','Payment received'],pend:['Заявка на вывод · в обработке','Yechish soʻrovi · koʻrib chiqilmoqda','Withdrawal · processing'],
 lost:['Клиент выбрал другого исполнителя','Mijoz boshqa ijrochini tanladi','The client picked someone else'],wait_pick:['Ждём, когда клиент выберет исполнителя','Mijoz ijrochini tanlashini kutamiz','Waiting for the client to pick'],
@@ -596,6 +598,9 @@ function doInstall(){if(!DEFERRED)return;DEFERRED.prompt();DEFERRED.userChoice.t
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();DEFERRED=e;$('installBtn').hidden=false;render()});
 $('installBtn').addEventListener('click',doInstall);
 $('iosHint').hidden=!(IOS&&!STANDALONE&&!INTG);
+// inside the Android app itself (TWA) there is nothing to download
+var IN_APK=false;try{if(/source=apk/.test(location.search)||document.referrer.indexOf('android-app://')===0)localStorage.setItem('kw-apk','1');IN_APK=localStorage.getItem('kw-apk')==='1'}catch(e){}
+$('apkLink').hidden=!(/android/i.test(navigator.userAgent)&&!IN_APK&&!STANDALONE&&!INTG);
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!INTG)navigator.serviceWorker.register('sw.js').catch(function(){});
 function lgLang(){document.querySelectorAll('#lgLang button').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-l')===lang))})}
 document.querySelectorAll('#lgLang button').forEach(function(b){b.addEventListener('click',function(){setLang(b.getAttribute('data-l'));lgLang()})});
