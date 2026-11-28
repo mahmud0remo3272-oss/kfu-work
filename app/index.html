@@ -350,7 +350,7 @@ function row(o){var w=el('div','rw'),b=el(o.click?'button':'div','row'+(o.click?
   w.appendChild(b);if(o.after)w.appendChild(o.after);return w}
 function list(items,emptyTxt){var g=el('div','grp');if(!items.length)g.appendChild(el('div','empty',emptyTxt));items.forEach(function(i){g.appendChild(i)});return g}
 function gh(txt,btnTxt,fn){var h=el('div','gh');h.appendChild(el('span',null,txt));if(btnTxt){var b=el('button',null,btnTxt);b.type='button';b.addEventListener('click',fn);h.appendChild(b)}return h}
-function allOrders(){return ORDERS.concat(S.my.filter(function(o){return o.stage===0}))}
+function allOrders(){return ORDERS} // own client orders live in "Мои заказы", not in the student list
 function orderRow(o,sub){var f=null;if(!o.mine){f=el('button','fav',S.fav[o.id]?'♥':'♡');f.type='button';f.setAttribute('aria-label','♡');f.setAttribute('aria-pressed',String(!!S.fav[o.id]));
     f.addEventListener('click',function(){S.fav[o.id]=!S.fav[o.id];save();toast(t(S.fav[o.id]?'fav1':'fav0'));render();haptic()})}
   var bd=o.mine?[t('mine_b'),'okb']:o.days<=2?[t('hot'),'hotb']:o.age===0?[t('neu'),'newb']:null;
