@@ -246,6 +246,7 @@ nores:['Ничего не нашлось. Попробуйте другой фи
 nomine:['Пока пусто. Откликнитесь на заказ во вкладке «Заказы».','Hozircha boʻsh. «Buyurtmalar» boʻlimida javob bering.','Nothing yet. Apply to an order in the Orders tab.'],
 nofav:['Нажмите ♡ на заказе, чтобы сохранить его.','Saqlash uchun buyurtmadagi ♡ ni bosing.','Tap ♡ on an order to save it.'],
 noskill:['Выберите навыки в Профиле, и здесь появятся заказы для вас.','Profilda koʻnikmalarni tanlang, shu yerda sizga mos buyurtmalar chiqadi.','Pick skills in your Profile and matching orders will show up here.'],
+nomatch:['Пока нет заказов по вашим навыкам. Загляните во вкладку «Заказы» или добавьте навыки в Профиле.','Hozircha koʻnikmalaringiz boʻyicha buyurtma yoʻq. «Buyurtmalar» boʻlimiga qarang yoki Profilda koʻnikma qoʻshing.','No orders for your skills yet. Check the Orders tab or add skills in your Profile.'],
 nomy:['У вас пока нет заказов. Нажмите «Заказать».','Hozircha buyurtmangiz yoʻq. «Buyurtma» ni bosing.','No orders yet. Tap “New order”.'],
 noq:['Очередь пуста. Новые работы появятся, когда студенты их сдадут.','Navbat boʻsh. Talabalar ishni topshirganda yangi ishlar chiqadi.','The queue is empty. New works appear when students submit them.'],
 nohist:['Операций пока нет','Hozircha amallar yoʻq','No transactions yet'],
@@ -366,7 +367,7 @@ function homeStudent(h){
   var tp=el('div','card tip');tp.appendChild(el('span','e','💡'));var tx=el('div');tx.appendChild(el('b',null,t('tip_t')));tx.appendChild(el('span',null,t('tips')[S.tip%4]));tp.appendChild(tx);var nb=el('button',null,t('next'));nb.type='button';nb.addEventListener('click',function(){S.tip++;save();render()});tp.appendChild(nb);h.appendChild(tp);
   h.appendChild(gh(t('for_you'),t('edit_sk'),function(){go('profile')}));
   var mine=ORDERS.filter(function(o){return S.sk[o.cat]&&!S.ap[o.id]}).slice(0,3);
-  h.appendChild(list(mine.map(function(o){return orderRow(o,cname(o.cat)+' · '+t('dl')(o.days))}),t('noskill')));
+  h.appendChild(list(mine.map(function(o){return orderRow(o,cname(o.cat)+' · '+t('dl')(o.days))}),Object.keys(S.sk).some(function(k){return S.sk[k]})?t('nomatch'):t('noskill')));
   h.appendChild(gh(t('hist')));
   var hs=S.hist.slice().sort(function(x,y){return y.ts-x.ts}).slice(0,6);
   h.appendChild(list(hs.map(function(x){var inn=x.k==='in',nm=inn?(x.t||(x.o!=null?title(findOrder(x.o)):t('seed')[x.s])):t('wdT')+' · '+x.m;
