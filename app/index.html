@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="color-scheme" content="light dark"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>KFU Work</title>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#1c8fd6"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="KFU Work"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>KFU Work</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>[hidden]{display:none!important}
@@ -166,9 +166,31 @@ button{font-family:var(--f)}
 .toast[hidden]{display:none}
 .demo-note{font-size:12px;color:var(--hint);text-align:center;margin-top:6px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* login screen for the installed app (outside Telegram) */
+.login{text-align:center;padding-top:max(48px,env(safe-area-inset-top,0px))}
+.lg-ic{width:88px;height:88px;display:block;margin:0 auto 14px}
+.login h1{font-size:28px;margin:0 0 6px}
+.login>p{color:var(--hint);margin:0 auto 22px;max-width:330px}
+.lg-w{min-height:48px;display:flex;justify-content:center;margin-bottom:10px}
+.lg-lang{display:flex;justify-content:center;gap:6px;margin-top:22px}
+.lg-lang button{border:0;background:var(--card);color:var(--hint);font:800 12px var(--f);border-radius:999px;padding:7px 12px;cursor:pointer}
+.lg-lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+body.no-tabs .tabs{display:none}
 </style></head><body>
 
 <div class="app">
+  <section class="view login" id="v-login" hidden>
+    <img class="lg-ic" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235cc6f7'/%3E%3Cstop offset='1' stop-color='%231c8fd6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='116' fill='url(%23g)'/%3E%3Cpath d='M196 168v-22a30 30 0 0 1 30-30h60a30 30 0 0 1 30 30v22' fill='none' stroke='%23fff' stroke-width='30' stroke-linecap='round'/%3E%3Crect x='108' y='168' width='296' height='220' rx='44' fill='%23fff'/%3E%3Cpath d='M190 280l46 46 92-98' fill='none' stroke='%231c8fd6' stroke-width='36' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <h1>KFU Work</h1>
+    <p data-t="lg_p"></p>
+    <div id="tgLogin" class="lg-w"></div>
+    <p class="small" data-t="lg_note"></p>
+    <button class="main" type="button" id="installBtn" data-t="inst" hidden></button>
+    <p class="small" id="iosHint" data-t="ios" hidden></p>
+    <button class="ghost" type="button" id="demoBtn" data-t="lg_demo"></button>
+    <div class="lg-lang" id="lgLang"><button type="button" data-l="ru">RU</button><button type="button" data-l="uz">UZ</button><button type="button" data-l="en">EN</button></div>
+  </section>
+
   <section class="view" id="v-home">
     <div class="top"><span class="brand"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235cc6f7'/%3E%3Cstop offset='1' stop-color='%231c8fd6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='116' fill='url(%23g)'/%3E%3Cpath d='M196 168v-22a30 30 0 0 1 30-30h60a30 30 0 0 1 30 30v22' fill='none' stroke='%23fff' stroke-width='30' stroke-linecap='round'/%3E%3Crect x='108' y='168' width='296' height='220' rx='44' fill='%23fff'/%3E%3Cpath d='M190 280l46 46 92-98' fill='none' stroke='%231c8fd6' stroke-width='36' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">KFU Work</span>
       <button class="chip" type="button" id="langBtn" aria-label="Language" style="padding:6px 12px">RU</button></div>
@@ -255,6 +277,11 @@ stC:[['Опубликован','Исполнитель выбран','В раб�
 nx_s:[['Демо: клиент выбрал вас','Начать работу','Сдать работу куратору','Ждём проверку куратора',''],['Demo: mijoz sizni tanladi','Ishni boshlash','Ishni kuratorga topshirish','Kurator tekshiruvini kutamiz',''],['Demo: client picks you','Start work','Submit to curator','Waiting for the curator','']],
 nx_c:[['Смотреть отклики','Демо: студент сдал работу','Демо: студент сдал работу','Ждём проверку куратора','Принять и оценить'],['Javoblarni koʻrish','Demo: talaba ishni topshirdi','Demo: talaba ishni topshirdi','Kurator tekshiruvini kutamiz','Qabul qilish va baholash'],['See applicants','Demo: student delivered','Demo: student delivered','Waiting for the curator','Accept and rate']],
 as_cu:['Открыть как куратор','Kurator sifatida ochish','Open as curator'],
+lg_p:['Биржа услуг студентов КФУ Джизак. Войдите через Telegram, и все ваши заказы, отклики и Паспорт будут здесь.','QFU Jizzax talabalari xizmatlar birjasi. Telegram orqali kiring — barcha buyurtmalar, javoblar va Pasport shu yerda boʻladi.','Student services marketplace of KFU Jizzakh. Log in with Telegram and all your orders, applications and Passport will be here.'],
+lg_note:['Те же данные, что в боте @KFUhire_bot. Пароль не нужен.','@KFUhire_bot botidagi maʼlumotlar. Parol kerak emas.','Same data as in the @KFUhire_bot bot. No password needed.'],
+lg_demo:['Посмотреть демо без входа','Kirmasdan demoni koʻrish','Try the demo without logging in'],inst:['📲 Установить приложение','📲 Ilovani oʻrnatish','📲 Install the app'],
+ios:['На iPhone: нажмите «Поделиться» внизу Safari, затем «На экран Домой».','iPhone’da: Safari pastidagi «Ulashish» → «Bosh ekranga».','On iPhone: tap Share in Safari, then “Add to Home Screen”.'],
+logout:['Выйти из аккаунта','Akkauntdan chiqish','Log out'],login_s:['Войти через Telegram','Telegram orqali kirish','Log in with Telegram'],
 paid:['Оплата получена','Toʻlov olindi','Payment received'],pend:['Заявка на вывод · в обработке','Yechish soʻrovi · koʻrib chiqilmoqda','Withdrawal · processing'],
 lost:['Клиент выбрал другого исполнителя','Mijoz boshqa ijrochini tanladi','The client picked someone else'],wait_pick:['Ждём, когда клиент выберет исполнителя','Mijoz ijrochini tanlashini kutamiz','Waiting for the client to pick'],
 working:['Студент выполняет работу','Talaba ishni bajarmoqda','The student is working'],noapps:['Откликов пока нет. Студенты получат уведомление.','Hozircha javob yoʻq. Talabalarga xabar boradi.','No applicants yet. Students will be notified.'],
@@ -320,12 +347,19 @@ function title(o){return o.title||T.O[o.id][LI[lang]][0]}
 function desc(o){return o.title?(o.desc||''):T.O[o.id][LI[lang]][1]}
 /* ---------- SERVER (online mode inside Telegram) ---------- */
 var API='https://kfu-work-api.kfu-work-api.workers.dev';
-var ONLINE=!!(tg&&tg.initData&&API),ME=null,AP_ORD={},QUEUE=[],LOADING=ONLINE;
+// Inside Telegram we authenticate with initData; in the installed app (outside Telegram) with a Telegram Login Widget payload.
+var INTG=!!(tg&&tg.initData),LOGIN=null,DEMO=false;
+if(!INTG){try{LOGIN=localStorage.getItem('kw-login');DEMO=sessionStorage.getItem('kw-demo')==='1'}catch(e){}}
+var ONLINE=!!(API&&(INTG||LOGIN)),ME=null,AP_ORD={},QUEUE=[],LOADING=ONLINE;
+var NEED_LOGIN=!INTG&&!LOGIN&&!DEMO&&location.protocol==='https:';
+function authHeader(){return INTG?{'x-init-data':tg.initData}:{'x-tg-login':LOGIN}}
+window.onTelegramAuth=function(u){try{localStorage.setItem('kw-login',JSON.stringify(u));sessionStorage.removeItem('kw-demo')}catch(e){}location.reload()};
+function logout(){try{localStorage.removeItem('kw-login');sessionStorage.removeItem('kw-demo')}catch(e){}location.reload()}
 var ERR={ru:{min:'Минимум 10 000 сум',balance:'Недостаточно средств',title:'Опишите задачу хотя бы в 5 символах',msg:'Напишите сообщение',closed:'Заказ уже закрыт',too_many:'Не больше 10 активных заказов',not_curator:'Вы не куратор',unauthorized:'Откройте приложение из бота',net:'Нет связи с сервером'},
  uz:{min:'Kamida 10 000 soʻm',balance:'Mablagʻ yetarli emas',title:'Vazifani kamida 5 belgida yozing',msg:'Xabar yozing',closed:'Buyurtma yopilgan',too_many:'10 tadan ortiq faol buyurtma boʻlmaydi',not_curator:'Siz kurator emassiz',unauthorized:'Ilovani botdan oching',net:'Server bilan aloqa yoʻq'},
  en:{min:'Minimum 10,000 UZS',balance:'Not enough balance',title:'Describe the task in at least 5 characters',msg:'Write a message',closed:'The order is closed',too_many:'Max 10 active orders',not_curator:'You are not a curator',unauthorized:'Open the app from the bot',net:'No connection to the server'}};
-function api(action,body){return fetch(API+'/api/'+action,{method:'POST',headers:{'content-type':'application/json','x-init-data':tg.initData},body:JSON.stringify(body||{})})
-  .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'server');return j})})
+function api(action,body){var h=authHeader();h['content-type']='application/json';return fetch(API+'/api/'+action,{method:'POST',headers:h,body:JSON.stringify(body||{})})
+  .then(function(r){return r.json().then(function(j){if(!r.ok){if(r.status===401&&LOGIN)logout();throw new Error(j.error||'server')}return j})})
   .then(function(s){fromServer(s);return s},function(e){var m=ERR[lang][e.message]||ERR[lang].net;toast(m);haptic('error');throw e})}
 // run an action on the server when online, locally otherwise; then call after()
 function act(action,body,local,after){if(ONLINE){api(action,body).then(function(){after&&after()},function(){});return}local();save();render();after&&after()}
@@ -429,6 +463,8 @@ function renderProfile(){var b=$('profBody');b.textContent='';
   var s3=el('label','set');s3.appendChild(el('span',null,t('s_theme')));var ts=el('select');[['auto','th_a'],['light','th_l'],['dark','th_d']].forEach(function(o){var op=el('option',null,t(o[1]));op.value=o[0];ts.appendChild(op)});ts.value=S.theme;ts.addEventListener('change',function(){S.theme=ts.value;save();theme()});s3.appendChild(ts);g.appendChild(s3);
   var s4=el('label','set');s4.appendChild(el('span',null,t('s_notif')));var sw=el('input','sw');sw.type='checkbox';sw.checked=S.notif;sw.addEventListener('change',function(){S.notif=sw.checked;save();haptic()});s4.appendChild(sw);g.appendChild(s4);
   [['s_bot','https://t.me/KFUhire_bot'],['s_site','https://mahmud0remo3272-oss.github.io/kfu-work/']].forEach(function(x){var s=el('div','set'),l=el('button','lnk',t(x[0]));l.type='button';l.addEventListener('click',function(){openLink(x[1])});s.appendChild(l);g.appendChild(s)});
+  if(DEFERRED){var si=el('div','set'),ib=el('button','lnk',t('inst'));ib.type='button';ib.addEventListener('click',doInstall);si.appendChild(ib);g.appendChild(si)}
+  if(LOGIN||(!INTG&&!ONLINE)){var so=el('div','set'),ob=el('button','lnk'+(LOGIN?' red':''),t(LOGIN?'logout':'login_s'));ob.type='button';ob.addEventListener('click',logout);so.appendChild(ob);g.appendChild(so)}
   if(ONLINE){b.appendChild(g);return}
   var s5=el('div','set'),rb=el('button','lnk red',t('s_reset'));rb.type='button';var armed=false;rb.addEventListener('click',function(){if(!armed){armed=true;rb.textContent=t('reset_q');return}var l=lang;S=fresh();S.lang=l;save();theme();render();toast(t('reset_ok'))});s5.appendChild(rb);g.appendChild(s5);
   b.appendChild(g);
@@ -550,13 +586,30 @@ function render(){
   var n=S.role==='student'?Object.keys(S.ap).filter(function(k){return S.ap[k].stage>=0&&S.ap[k].stage<4}).length:S.role==='client'?S.my.filter(function(o){return o.stage===4}).length:queue().length,d=$('mineDot');d.hidden=!n;d.textContent=n;
 }
 var st0=S.lang;if(!st0){st0='ru';try{var lc=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user&&tg.initDataUnsafe.user.language_code;if(lc)st0=lc==='uz'?'uz':lc==='ru'?'ru':'en'}catch(e){}}
-if(ONLINE){S=fresh();S.bal=0;S.hist=[];S.rec=[];S.bdg=[];S.jobs=0;S.sk={};S.name=(tg.initDataUnsafe.user||{}).first_name||'—';ORDERS=[];
+if(ONLINE){S=fresh();S.bal=0;S.hist=[];S.rec=[];S.bdg=[];S.jobs=0;S.sk={};ORDERS=[];
+  try{S.name=(INTG?tg.initDataUnsafe.user:JSON.parse(LOGIN)).first_name||'—'}catch(e){S.name='—'}
   try{var pf=JSON.parse(localStorage.getItem('kw-pref')||'{}');if(pf.theme)S.theme=pf.theme;if(pf.lang)st0=pf.lang;if(pf.notif!=null)S.notif=pf.notif}catch(e){}S.lang=st0}
 lang=st0;document.documentElement.setAttribute('lang',lang);theme();render();
+/* ---------- installed app: login screen, install prompt, service worker ---------- */
+var DEFERRED=null,IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream,STANDALONE=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function doInstall(){if(!DEFERRED)return;DEFERRED.prompt();DEFERRED.userChoice.then(function(){DEFERRED=null;$('installBtn').hidden=true;render()})}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();DEFERRED=e;$('installBtn').hidden=false;render()});
+$('installBtn').addEventListener('click',doInstall);
+$('iosHint').hidden=!(IOS&&!STANDALONE&&!INTG);
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!INTG)navigator.serviceWorker.register('sw.js').catch(function(){});
+function lgLang(){document.querySelectorAll('#lgLang button').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-l')===lang))})}
+document.querySelectorAll('#lgLang button').forEach(function(b){b.addEventListener('click',function(){setLang(b.getAttribute('data-l'));lgLang()})});
+$('demoBtn').addEventListener('click',function(){try{sessionStorage.setItem('kw-demo','1')}catch(e){}location.reload()});
+if(NEED_LOGIN){
+  ['home','orders','mine','profile'].forEach(function(k){$('v-'+k).hidden=true});$('v-login').hidden=false;document.body.classList.add('no-tabs');lgLang();
+  var sc=document.createElement('script');sc.async=true;sc.src='https://telegram.org/js/telegram-widget.js?22';
+  sc.setAttribute('data-telegram-login','KFUhire_bot');sc.setAttribute('data-size','large');sc.setAttribute('data-radius','12');sc.setAttribute('data-onauth','onTelegramAuth(user)');sc.setAttribute('data-request-access','write');
+  $('tgLogin').appendChild(sc);
+}
 // bot buttons open a specific screen: ?start=new|student|mine|passport
 var START=null;try{var qp=new URLSearchParams(location.search);START=qp.get('start');var ql=qp.get('lang');if(ql&&LI[ql]!=null&&ql!==lang)setLang(ql)}catch(e){}
 function applyStart(){var s=START;START=null;if(s==='new'){if(S.role!=='client')setRole('client');openNew()}else if(s==='student'){if(S.role!=='student')setRole('student');go('orders')}else if(s==='mine')go('mine');else if(s==='passport'){if(S.role!=='student')setRole('student');go('profile')}}
-if(!ONLINE)applyStart();
+if(!ONLINE&&!NEED_LOGIN)applyStart();
 if(ONLINE){api('state').then(applyStart,function(){});
   // refresh when the user comes back to the app (e.g. after a bot notification)
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&bg.hidden)api('state').catch(function(){})})}
