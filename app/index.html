@@ -413,10 +413,10 @@ function renderOrders(){var l=allOrders().filter(function(o){return (cat==='all'
 
 /* ---------- PROFILE / PASSPORT ---------- */
 function renderProfile(){var b=$('profBody');b.textContent='';
-  var rated=S.rec.filter(function(r){return typeof r.r==='number'}),avg=rated.length?(rated.reduce(function(s,r){return s+r.r},0)/rated.length):0,p=el('div','pass'),h=el('div','ph');h.appendChild(el('span',null,'KFU WORK · '+t('pass_no')));h.appendChild(el('span',null,'№ KP-0001'));p.appendChild(h);
-  var m=el('div','pm'),av=el('div','av',(S.name||'?').split(/\s+/).map(function(w){return w[0]||''}).join('').slice(0,2).toUpperCase());m.appendChild(av);var mt=el('div');mt.appendChild(el('h2',null,S.name||'—'));mt.appendChild(el('p',null,['Экономика · 3 курс · КФУ Джизак','Iqtisodiyot · 3-kurs · QFU Jizzax','Economics · Year 3 · KFU Jizzakh'][LI[lang]]));m.appendChild(mt);p.appendChild(m);
+  var rated=S.rec.filter(function(r){return typeof r.r==='number'}),avg=rated.length?(rated.reduce(function(s,r){return s+r.r},0)/rated.length):0,p=el('div','pass'),h=el('div','ph');h.appendChild(el('span',null,'KFU WORK · '+t('pass_no')));var kp='KP-'+(ONLINE&&ME?String(ME.id).slice(-6):'0001');h.appendChild(el('span',null,'№ '+kp));p.appendChild(h);
+  var m=el('div','pm'),av=el('div','av',(S.name||'?').split(/\s+/).map(function(w){return w[0]||''}).join('').slice(0,2).toUpperCase());m.appendChild(av);var mt=el('div');mt.appendChild(el('h2',null,S.name||'—'));mt.appendChild(el('p',null,ONLINE?(S.bdg.length?S.bdg.map(cname).join(' · ')+' · ':'')+['КФУ Джизак','QFU Jizzax','KFU Jizzakh'][LI[lang]]:['Экономика · 3 курс · КФУ Джизак','Iqtisodiyot · 3-kurs · QFU Jizzax','Economics · Year 3 · KFU Jizzakh'][LI[lang]]));m.appendChild(mt);p.appendChild(m);
   var ps=el('div','ps');[[S.jobs,t('st1')],[avg.toLocaleString(loc(),{minimumFractionDigits:1,maximumFractionDigits:1}),t('st2')],[S.bdg.length,t('st3')]].forEach(function(x){var d=el('div');d.appendChild(el('b',null,String(x[0])));d.appendChild(el('span',null,x[1]));ps.appendChild(d)});p.appendChild(ps);
-  p.appendChild(el('div','mrz','KFU<WORK<<CAREER<PASSPORT<<KP0001<<'+(S.name||'').toUpperCase().replace(/[^A-ZА-ЯЁ]/g,'<')+'<<<<<<<<<<<<'));b.appendChild(p);
+  p.appendChild(el('div','mrz','KFU<WORK<<CAREER<PASSPORT<<'+kp.replace('-','')+'<<'+(S.name||'').toUpperCase().replace(/[^A-ZА-ЯЁ]/g,'<')+'<<<<<<<<<<<<'));b.appendChild(p);
   var left=Math.max(0,15-S.jobs);if(left){var pr=el('div','card prog'),pp=el('p');pp.appendChild(el('b',null,t('more')+' '+left+' '+t('ord_w')));pp.appendChild(document.createTextNode(' '+t('to_badge')));pr.appendChild(pp);var br=el('div','bar'),bi=el('i');bi.style.width=Math.round(S.jobs/15*100)+'%';br.appendChild(bi);pr.appendChild(br);b.appendChild(pr)}
   b.appendChild(gh(t('badges')));var bg=el('div','badges');S.bdg.forEach(function(c){bg.appendChild(el('span','bdg','✓ '+cname(c)))});b.appendChild(bg);
   b.appendChild(gh(t('my_sk')));var sk=el('div','chips wrap');Object.keys(BASE).forEach(function(c){var x=el('button','chip',cname(c));x.type='button';x.setAttribute('aria-pressed',String(!!S.sk[c]));x.addEventListener('click',function(){var n={};for(var k in S.sk)n[k]=S.sk[k];n[c]=!n[c];act('profile',{skills:Object.keys(n).filter(function(k){return n[k]})},function(){S.sk=n},function(){haptic()})});sk.appendChild(x)});b.appendChild(sk);
@@ -553,7 +553,7 @@ if(ONLINE){S=fresh();S.bal=0;S.hist=[];S.rec=[];S.bdg=[];S.jobs=0;S.sk={};S.name
   try{var pf=JSON.parse(localStorage.getItem('kw-pref')||'{}');if(pf.theme)S.theme=pf.theme;if(pf.lang)st0=pf.lang;if(pf.notif!=null)S.notif=pf.notif}catch(e){}S.lang=st0}
 lang=st0;document.documentElement.setAttribute('lang',lang);theme();render();
 // bot buttons open a specific screen: ?start=new|student|mine|passport
-var START=null;try{START=new URLSearchParams(location.search).get('start')}catch(e){}
+var START=null;try{var qp=new URLSearchParams(location.search);START=qp.get('start');var ql=qp.get('lang');if(ql&&LI[ql]!=null&&ql!==lang)setLang(ql)}catch(e){}
 function applyStart(){var s=START;START=null;if(s==='new'){if(S.role!=='client')setRole('client');openNew()}else if(s==='student'){if(S.role!=='student')setRole('student');go('orders')}else if(s==='mine')go('mine');else if(s==='passport'){if(S.role!=='student')setRole('student');go('profile')}}
 if(!ONLINE)applyStart();
 if(ONLINE){api('state').then(applyStart,function(){});
