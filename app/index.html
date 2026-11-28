@@ -552,7 +552,11 @@ var st0=S.lang;if(!st0){st0='ru';try{var lc=tg&&tg.initDataUnsafe&&tg.initDataUn
 if(ONLINE){S=fresh();S.bal=0;S.hist=[];S.rec=[];S.bdg=[];S.jobs=0;S.sk={};S.name=(tg.initDataUnsafe.user||{}).first_name||'—';ORDERS=[];
   try{var pf=JSON.parse(localStorage.getItem('kw-pref')||'{}');if(pf.theme)S.theme=pf.theme;if(pf.lang)st0=pf.lang;if(pf.notif!=null)S.notif=pf.notif}catch(e){}S.lang=st0}
 lang=st0;document.documentElement.setAttribute('lang',lang);theme();render();
-if(ONLINE){api('state').catch(function(){});
+// bot buttons open a specific screen: ?start=new|student|mine|passport
+var START=null;try{START=new URLSearchParams(location.search).get('start')}catch(e){}
+function applyStart(){var s=START;START=null;if(s==='new'){if(S.role!=='client')setRole('client');openNew()}else if(s==='student'){if(S.role!=='student')setRole('student');go('orders')}else if(s==='mine')go('mine');else if(s==='passport'){if(S.role!=='student')setRole('student');go('profile')}}
+if(!ONLINE)applyStart();
+if(ONLINE){api('state').then(applyStart,function(){});
   // refresh when the user comes back to the app (e.g. after a bot notification)
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&bg.hidden)api('state').catch(function(){})})}
 })();
